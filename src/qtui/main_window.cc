@@ -44,6 +44,7 @@ const char * AUD_TEST_TAG = "[v11-speed]";
 #include <QLabel>
 #include <QMenuBar>
 #include <QSettings>
+#include <QProxyStyle>
 #include <QToolButton>
 
 class DockWidget : public QDockWidget
@@ -135,6 +136,7 @@ static QToolButton * create_menu_button(QWidget * parent, QMenuBar * menubar)
 
 #include <QMenu>
 #include <QSlider>
+#include <QProxyStyle>
 #include <QToolButton>
 #include <QVBoxLayout>
 #include <QWidgetAction>
@@ -181,20 +183,53 @@ static void speed_down()
     speed_set(speed_get() - SPEED_STEP);
 }
 
+class SpeedSliderStyle : public QProxyStyle
+{
+public:
+    SpeedSliderStyle() { audqt::setup_proxy_style(this); }
+
+    int styleHint(QStyle::StyleHint hint, const QStyleOption * option = nullptr,
+                  const QWidget * widget = nullptr,
+                  QStyleHintReturn * returnData = nullptr) const override
+    {
+        int styleHint = QProxyStyle::styleHint(hint, option, widget, returnData);
+        if (hint == QStyle::SH_Slider_AbsoluteSetButtons)
+            styleHint |= Qt::LeftButton;
+        return styleHint;
+    }
+
+    void drawPrimitive(PrimitiveElement element, const QStyleOption * option,
+                       QPainter * painter, const QWidget * widget) const override
+    {
+        if (element == QStyle::PE_FrameFocusRect) return;
+        QProxyStyle::drawPrimitive(element, option, painter, widget);
+    }
+};
+
 class SpeedButton : public QToolButton
 {
 public:
     SpeedButton(QWidget * parent = nullptr)
         : QToolButton(parent), m_slider(Qt::Vertical)
     {
+        auto * style = new SpeedSliderStyle;
+        style->setParent(this);
+
+        m_slider.setStyle(style);
+        m_slider.setMinimumHeight(audqt::sizes.OneInch);
         m_slider.setRange(int(SPEED_MIN * 100), int(SPEED_MAX * 100));
         m_slider.setSingleStep(int(SPEED_STEP * 100));
         m_slider.setPageStep(int(SPEED_STEP * 100));
-        m_slider.setMinimumHeight(100);
 
-        auto * layout = new QVBoxLayout(&m_container);
-        layout->setContentsMargins(4, 4, 4, 4);
+        setUpButton(&m_buttons[0], 1);   // + above slider
+        setUpButton(&m_buttons[1], -1);  // - below slider
+
+        auto * layout = audqt::make_vbox(&m_container, audqt::sizes.TwoPt);
+        layout->setContentsMargins(audqt::margins.TwoPt);
+        layout->addWidget(&m_buttons[0]);
         layout->addWidget(&m_slider);
+        layout->addWidget(&m_buttons[1]);
+        layout->setAlignment(&m_slider, Qt::AlignHCenter);
 
         m_action.setDefaultWidget(&m_container);
         m_menu.addAction(&m_action);
@@ -235,6 +270,18 @@ public:
         }
     }
 
+    void setUpButton(QToolButton * button, int dir)
+    {
+        button->setText(dir < 0 ? "-" : "+");
+        button->setAutoRaise(true);
+        button->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+        connect(button, &QAbstractButton::clicked, [this, dir]() {
+            speed_set(speed_get() + dir * SPEED_STEP);
+            float s = speed_get();
+            m_slider.setValue(int(s * 100));
+        });
+    }
+
 protected:
     void wheelEvent(QWheelEvent * e) override
     {
@@ -261,6 +308,7 @@ private:
     QMenu m_menu;
     QWidgetAction m_action{this};
     QWidget m_container;
+    QToolButton m_buttons[2];
     QSlider m_slider;
     int m_scroll_delta = 0;
 };
