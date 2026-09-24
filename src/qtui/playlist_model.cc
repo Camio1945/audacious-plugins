@@ -34,16 +34,16 @@
 #include "playlist_model.h"
 
 const char * const PlaylistModel::labels[] = {
-    N_("Entry Number"), N_("Title"),        N_("Year"),         N_("Album Artist"),
-    N_("Track"),        N_("Genre"),        N_("Length"),       N_("Folder"),
-    N_("File Name"),    N_("Custom Title"), N_("Bitrate"),      N_("Comment"),
+    N_("Entry Number"), N_("File Name"),    N_("Title"),        N_("Year"),
+    N_("Album Artist"), N_("Track"),        N_("Genre"),        N_("Length"),
+    N_("Folder"),       N_("Custom Title"), N_("Bitrate"),      N_("Comment"),
     N_("Publisher"),    N_("Catalog Number"), N_("Disc"),       N_("File Created"),
     N_("File Modified")};
 
 static const Tuple::Field s_fields[] = {
-    Tuple::Invalid,        Tuple::Title,       Tuple::Year,        Tuple::AlbumArtist,
-    Tuple::Track,          Tuple::Genre,       Tuple::Length,      Tuple::Path,
-    Tuple::Basename,       Tuple::FormattedTitle, Tuple::Bitrate,  Tuple::Comment,
+    Tuple::Invalid,        Tuple::Basename,    Tuple::Title,       Tuple::Year,
+    Tuple::AlbumArtist,    Tuple::Track,       Tuple::Genre,       Tuple::Length,
+    Tuple::Path,           Tuple::FormattedTitle, Tuple::Bitrate,  Tuple::Comment,
     Tuple::Publisher,      Tuple::CatalogNum,  Tuple::Disc,        Tuple::FileCreated,
     Tuple::FileModified};
 

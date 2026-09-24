@@ -33,6 +33,7 @@ public:
     enum
     {
         EntryNumber,
+        Filename,
         Title,
         Year,
         AlbumArtist,
@@ -40,7 +41,6 @@ public:
         Genre,
         Length,
         Path,
-        Filename,
         CustomTitle,
         Bitrate,
         Comment,

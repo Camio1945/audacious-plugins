@@ -26,7 +26,7 @@
 
 #include <libaudqt/libaudqt.h>
 
-const char * AUD_TEST_TAG = "[v9-default-cols]";
+const char * AUD_TEST_TAG = "[v10-filename-first]";
 
 #include "info_bar.h"
 #include "menus.h"
