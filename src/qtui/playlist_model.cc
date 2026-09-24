@@ -27,6 +27,7 @@
 #include <libaudcore/audstrings.h>
 #include <libaudcore/drct.h>
 #include <libaudcore/i18n.h>
+#include <libaudcore/plugins.h>
 #include <libaudqt/libaudqt.h>
 
 #include "playlist_model.h"
@@ -252,6 +253,20 @@ QMimeData * PlaylistModel::mimeData(const QModelIndexList & indexes) const
     return data;
 }
 
+static bool is_supported_audio(const char * filename)
+{
+    StringBuf ext = uri_get_extension(filename);
+    if (!ext)
+        return true;
+
+    for (const char * supported : aud_plugin_get_supported_extensions())
+    {
+        if (!strcmp(supported, ext))
+            return true;
+    }
+    return false;
+}
+
 bool PlaylistModel::dropMimeData(const QMimeData * data, Qt::DropAction action,
                                  int row, int column,
                                  const QModelIndex & parent)
@@ -261,7 +276,14 @@ bool PlaylistModel::dropMimeData(const QMimeData * data, Qt::DropAction action,
 
     Index<PlaylistAddItem> items;
     for (auto & url : data->urls())
-        items.append(String(url.toEncoded()));
+    {
+        String filename(url.toEncoded().constData());
+        if (is_supported_audio(filename))
+            items.append(std::move(filename));
+    }
+
+    if (items.len() == 0)
+        return false;
 
     m_playlist.insert_items(row, std::move(items), false);
     return true;
