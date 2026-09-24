@@ -33,6 +33,8 @@
 
 #include "../ui-common/menu-ops.h"
 #include "../ui-common/qt-compat.h"
+#include <fstream>
+#include <QDateTime>
 
 PlaylistWidget::PlaylistWidget(QWidget * parent, Playlist playlist)
     : audqt::TreeView(parent), m_playlist(playlist),
@@ -138,8 +140,19 @@ void PlaylistWidget::contextMenuEvent(QContextMenuEvent * event)
         contextMenu->popup(event->globalPos());
 }
 
+extern void speed_up();
+extern void speed_down();
+
 void PlaylistWidget::keyPressEvent(QKeyEvent * event)
 {
+    /* Speed shortcuts: Ctrl+Up / Ctrl+Down — intercept BEFORE TreeView eats them */
+    if ((event->modifiers() & Qt::ControlModifier) &&
+        !(event->modifiers() & (Qt::AltModifier | Qt::ShiftModifier)))
+    {
+        if (event->key() == Qt::Key_Up) { speed_up(); return; }
+        if (event->key() == Qt::Key_Down) { speed_down(); return; }
+    }
+
     auto CtrlShiftAlt =
         Qt::ShiftModifier | Qt::ControlModifier | Qt::AltModifier;
     if (!(event->modifiers() & CtrlShiftAlt))

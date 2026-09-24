@@ -26,7 +26,7 @@
 
 #include <libaudqt/libaudqt.h>
 
-const char * AUD_TEST_TAG = "[v12-test]";
+const char * AUD_TEST_TAG = "[v15-playlist-intercept]";
 
 #include "info_bar.h"
 #include "menus.h"
@@ -141,6 +141,7 @@ static QToolButton * create_menu_button(QWidget * parent, QMenuBar * menubar)
 #include <QVBoxLayout>
 #include <QWidgetAction>
 
+
 #include <libaudcore/hook.h>
 #include <libaudcore/plugin.h>
 
@@ -150,7 +151,7 @@ static constexpr float SPEED_STEP = 0.05f;
 static constexpr const char * SPEED_SECT = "speed-pitch";
 static constexpr const char * SPEED_KEY = "speed";
 
-static void ensure_speedpitch_enabled()
+void ensure_speedpitch_enabled()
 {
     static bool checked = false;
     if (checked) return;
@@ -161,24 +162,25 @@ static void ensure_speedpitch_enabled()
         aud_plugin_enable(handle, true);
 }
 
-static float speed_get()
+float speed_get()
 {
     return aud_get_double(SPEED_SECT, SPEED_KEY);
 }
 
-static void speed_set(float val)
+void speed_set(float val)
 {
     val = aud::clamp(val, SPEED_MIN, SPEED_MAX);
     aud_set_double(SPEED_SECT, SPEED_KEY, val);
     ensure_speedpitch_enabled();
+    hook_call("speed-pitch set speed", nullptr);
 }
 
-static void speed_up()
+void speed_up()
 {
     speed_set(speed_get() + SPEED_STEP);
 }
 
-static void speed_down()
+void speed_down()
 {
     speed_set(speed_get() - SPEED_STEP);
 }
@@ -318,6 +320,7 @@ private:
     int m_scroll_delta = 0;
 };
 
+
 MainWindow::MainWindow()
     : m_config_name(get_config_name()), m_dialogs(this),
       m_menubar(qtui_build_menubar(this)),
@@ -451,13 +454,16 @@ void MainWindow::keyPressEvent(QKeyEvent * event)
     if ((event->modifiers() & Qt::ControlModifier) &&
         !(event->modifiers() & (Qt::AltModifier | Qt::ShiftModifier)))
     {
+
         if (event->key() == Qt::Key_Up)
         {
+
             speed_up();
             return;
         }
         if (event->key() == Qt::Key_Down)
         {
+
             speed_down();
             return;
         }
