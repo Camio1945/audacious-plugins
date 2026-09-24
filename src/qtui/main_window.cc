@@ -26,7 +26,7 @@
 
 #include <libaudqt/libaudqt.h>
 
-const char * AUD_TEST_TAG = "[v10-filename-first]";
+const char * AUD_TEST_TAG = "[v11-speed]";
 
 #include "info_bar.h"
 #include "menus.h"
@@ -38,6 +38,7 @@ const char * AUD_TEST_TAG = "[v10-filename-first]";
 
 #include <QAction>
 #include <QBoxLayout>
+#include <QMenu>
 #include <QCloseEvent>
 #include <QDockWidget>
 #include <QLabel>
@@ -130,6 +131,140 @@ static QToolButton * create_menu_button(QWidget * parent, QMenuBar * menubar)
     return button;
 }
 
+/* === Playback speed control === */
+
+#include <QMenu>
+#include <QSlider>
+#include <QToolButton>
+#include <QVBoxLayout>
+#include <QWidgetAction>
+
+#include <libaudcore/hook.h>
+#include <libaudcore/plugin.h>
+
+static constexpr float SPEED_MIN = 0.25f;
+static constexpr float SPEED_MAX = 2.00f;
+static constexpr float SPEED_STEP = 0.05f;
+static constexpr const char * SPEED_SECT = "speed-pitch";
+static constexpr const char * SPEED_KEY = "speed";
+
+static void ensure_speedpitch_enabled()
+{
+    static bool checked = false;
+    if (checked) return;
+    checked = true;
+
+    auto * handle = aud_plugin_lookup_basename("speed-pitch");
+    if (handle && !aud_plugin_get_enabled(handle))
+        aud_plugin_enable(handle, true);
+}
+
+static float speed_get()
+{
+    return aud_get_double(SPEED_SECT, SPEED_KEY);
+}
+
+static void speed_set(float val)
+{
+    val = aud::clamp(val, SPEED_MIN, SPEED_MAX);
+    aud_set_double(SPEED_SECT, SPEED_KEY, val);
+    ensure_speedpitch_enabled();
+}
+
+static void speed_up()
+{
+    speed_set(speed_get() + SPEED_STEP);
+}
+
+static void speed_down()
+{
+    speed_set(speed_get() - SPEED_STEP);
+}
+
+class SpeedButton : public QToolButton
+{
+public:
+    SpeedButton(QWidget * parent = nullptr)
+        : QToolButton(parent), m_slider(Qt::Vertical)
+    {
+        m_slider.setRange(int(SPEED_MIN * 100), int(SPEED_MAX * 100));
+        m_slider.setSingleStep(int(SPEED_STEP * 100));
+        m_slider.setPageStep(int(SPEED_STEP * 100));
+        m_slider.setMinimumHeight(100);
+
+        auto * layout = new QVBoxLayout(&m_container);
+        layout->setContentsMargins(4, 4, 4, 4);
+        layout->addWidget(&m_slider);
+
+        m_action.setDefaultWidget(&m_container);
+        m_menu.addAction(&m_action);
+
+        setAutoRaise(true);
+        setFocusPolicy(Qt::NoFocus);
+        setMenu(&m_menu);
+        setPopupMode(QToolButton::InstantPopup);
+        setStyleSheet("QToolButton::menu-indicator { image: none; }");
+
+        float s = speed_get();
+        m_slider.setValue(int(s * 100));
+        updateLabel();
+
+        connect(&m_slider, &QAbstractSlider::valueChanged, this, [this](int v) {
+            speed_set(v / 100.0f);
+            updateLabel();
+        });
+
+        hook_associate("speed-pitch set speed", onSpeedChangedHook, this);
+    }
+
+    ~SpeedButton() override
+    {
+        hook_dissociate("speed-pitch set speed", onSpeedChangedHook, this);
+    }
+
+    static void onSpeedChangedHook(void *, void * me)
+    {
+        auto * self = (SpeedButton *)me;
+        if (!self->m_slider.isSliderDown())
+        {
+            float s = speed_get();
+            self->m_slider.blockSignals(true);
+            self->m_slider.setValue(int(s * 100));
+            self->m_slider.blockSignals(false);
+            self->updateLabel();
+        }
+    }
+
+protected:
+    void wheelEvent(QWheelEvent * e) override
+    {
+        m_scroll_delta += e->angleDelta().y();
+        int steps = m_scroll_delta / 120;
+        if (steps != 0)
+        {
+            m_scroll_delta -= 120 * steps;
+            speed_set(speed_get() + steps * SPEED_STEP);
+            float s = speed_get();
+            m_slider.setValue(int(s * 100));
+        }
+        QToolButton::wheelEvent(e);
+    }
+
+private:
+    void updateLabel()
+    {
+        float s = speed_get();
+        setText(QString("%1x").arg(s, 0, 'f', 2));
+        setToolTip(QString(_("Playback speed: %1x  (Ctrl+Up/Down, wheel on this button)")).arg(s, 0, 'f', 2));
+    }
+
+    QMenu m_menu;
+    QWidgetAction m_action{this};
+    QWidget m_container;
+    QSlider m_slider;
+    int m_scroll_delta = 0;
+};
+
 MainWindow::MainWindow()
     : m_config_name(get_config_name()), m_dialogs(this),
       m_menubar(qtui_build_menubar(this)),
@@ -178,7 +313,8 @@ MainWindow::MainWindow()
         ToolBarAction(
             "media-playlist-shuffle", N_("Shuffle"), N_("Shuffle"),
             [](bool on) { aud_set_bool("shuffle", on); }, &m_shuffle_action),
-        ToolBarCustom(audqt::volume_button_new(this))};
+        ToolBarCustom(audqt::volume_button_new(this)),
+        ToolBarCustom(new SpeedButton(this))};
 
     auto toolbar = new ToolBar(this, items);
     addToolBar(Qt::TopToolBarArea, toolbar);
@@ -258,6 +394,22 @@ void MainWindow::closeEvent(QCloseEvent * e)
 
 void MainWindow::keyPressEvent(QKeyEvent * event)
 {
+    /* Playback speed shortcuts: Ctrl+Up / Ctrl+Down */
+    if ((event->modifiers() & Qt::ControlModifier) &&
+        !(event->modifiers() & (Qt::AltModifier | Qt::ShiftModifier)))
+    {
+        if (event->key() == Qt::Key_Up)
+        {
+            speed_up();
+            return;
+        }
+        if (event->key() == Qt::Key_Down)
+        {
+            speed_down();
+            return;
+        }
+    }
+
     auto CtrlShiftAlt =
         Qt::ShiftModifier | Qt::ControlModifier | Qt::AltModifier;
     if (!(event->modifiers() & CtrlShiftAlt) && event->key() == Qt::Key_Escape)
