@@ -28,6 +28,7 @@
 #include <libaudcore/drct.h>
 #include <libaudcore/i18n.h>
 #include <libaudcore/plugins.h>
+#include <cstring>
 #include <libaudqt/libaudqt.h>
 
 #include "playlist_model.h"
@@ -255,13 +256,37 @@ QMimeData * PlaylistModel::mimeData(const QModelIndexList & indexes) const
 
 static bool is_supported_audio(const char * filename)
 {
+    /* Try libaudcore URI parser first (handles file:// etc). */
     StringBuf ext = uri_get_extension(filename);
-    if (!ext)
-        return true;
+    if (ext)
+    {
+        for (const char * supported : aud_plugin_get_supported_extensions())
+        {
+            if (!strcmp(supported, ext))
+                return true;
+        }
+    }
 
+    /* Fallback: extract extension directly from the path portion.
+     * uri_get_extension can fail on some URL encodings. */
+    const char * slash = strrchr(filename, '/');
+    const char * backslash = strrchr(filename, '\\');
+    const char * last_sep = slash;
+    if (backslash && (!slash || backslash > slash))
+        last_sep = backslash;
+
+    if (!last_sep)
+        return true;   /* no path separator => unknown, accept */
+
+    const char * dot = strrchr(last_sep + 1, '.');
+    if (!dot)
+        return true;   /* no extension => could be a folder, accept */
+
+    dot++;  /* skip the period */
     for (const char * supported : aud_plugin_get_supported_extensions())
     {
-        if (!strcmp(supported, ext))
+        size_t len = strlen(supported);
+        if (strlen(dot) == len && !strncasecmp(supported, dot, len))
             return true;
     }
     return false;
@@ -282,10 +307,11 @@ bool PlaylistModel::dropMimeData(const QMimeData * data, Qt::DropAction action,
             items.append(std::move(filename));
     }
 
-    if (items.len() == 0)
-        return false;
-
-    m_playlist.insert_items(row, std::move(items), false);
+    /* Always accept the drop. Non-audio files are silently skipped;
+     * if nothing matched, items is empty and nothing gets inserted.
+     * Returning false here cancels the whole drop operation. */
+    if (items.len() > 0)
+        m_playlist.insert_items(row, std::move(items), false);
     return true;
 }
 
