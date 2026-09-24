@@ -254,39 +254,40 @@ QMimeData * PlaylistModel::mimeData(const QModelIndexList & indexes) const
     return data;
 }
 
-static bool is_supported_audio(const char * filename)
+static bool url_has_supported_ext(const QUrl & url)
 {
-    /* Try libaudcore URI parser first (handles file:// etc). */
-    StringBuf ext = uri_get_extension(filename);
-    if (ext)
-    {
-        for (const char * supported : aud_plugin_get_supported_extensions())
-        {
-            if (!strcmp(supported, ext))
-                return true;
-        }
-    }
+    /* Get a clean local-style path from the QUrl. */
+    QString path = url.toLocalFile();
+    if (path.isEmpty())
+        path = url.path();
 
-    /* Fallback: extract extension directly from the path portion.
-     * uri_get_extension can fail on some URL encodings. */
-    const char * slash = strrchr(filename, '/');
-    const char * backslash = strrchr(filename, '\\');
-    const char * last_sep = slash;
-    if (backslash && (!slash || backslash > slash))
-        last_sep = backslash;
-
-    if (!last_sep)
-        return true;   /* no path separator => unknown, accept */
-
-    const char * dot = strrchr(last_sep + 1, '.');
+    /* Folders (no extension) are always accepted. */
+    const char * p = path.toUtf8().constData();
+    const char * dot = strrchr(p, '.');
     if (!dot)
-        return true;   /* no extension => could be a folder, accept */
+        return true;
 
-    dot++;  /* skip the period */
+    dot++;  /* skip period */
     for (const char * supported : aud_plugin_get_supported_extensions())
     {
         size_t len = strlen(supported);
         if (strlen(dot) == len && !strncasecmp(supported, dot, len))
+            return true;
+    }
+    return false;
+}
+
+bool PlaylistModel::canDropMimeData(const QMimeData * data, Qt::DropAction action,
+                                    int row, int column,
+                                    const QModelIndex & parent) const
+{
+    if (action != Qt::CopyAction || !data->hasUrls())
+        return QAbstractListModel::canDropMimeData(data, action, row, column, parent);
+
+    /* Accept if at least one URL looks like an audio file or a folder. */
+    for (const auto & url : data->urls())
+    {
+        if (url_has_supported_ext(url))
             return true;
     }
     return false;
@@ -300,16 +301,12 @@ bool PlaylistModel::dropMimeData(const QMimeData * data, Qt::DropAction action,
         return false;
 
     Index<PlaylistAddItem> items;
-    for (auto & url : data->urls())
+    for (const auto & url : data->urls())
     {
-        String filename(url.toEncoded().constData());
-        if (is_supported_audio(filename))
-            items.append(std::move(filename));
+        if (url_has_supported_ext(url))
+            items.append(String(url.toEncoded().constData()));
     }
 
-    /* Always accept the drop. Non-audio files are silently skipped;
-     * if nothing matched, items is empty and nothing gets inserted.
-     * Returning false here cancels the whole drop operation. */
     if (items.len() > 0)
         m_playlist.insert_items(row, std::move(items), false);
     return true;
