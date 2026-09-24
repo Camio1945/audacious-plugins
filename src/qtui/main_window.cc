@@ -26,7 +26,6 @@
 
 #include <libaudqt/libaudqt.h>
 
-const char * AUD_TEST_TAG = "[v15-playlist-intercept]";
 
 #include "info_bar.h"
 #include "menus.h"
@@ -574,7 +573,7 @@ void MainWindow::title_change_cb()
     auto title = aud_drct_get_title();
     if (title)
     {
-        set_title(QString("%1 - %2 %3").arg((const char *)title, _("Audacious"), AUD_TEST_TAG));
+        set_title(QString("%1 - %2").arg((const char *)title, _("Audacious")));
         m_buffering_timer.stop();
     }
 }
@@ -610,7 +609,7 @@ void MainWindow::pause_cb()
 
 void MainWindow::playback_stop_cb()
 {
-    set_title(QString(_("Audacious")) + " " + AUD_TEST_TAG);
+    set_title(QString(_("Audacious")));
     m_buffering_timer.stop();
 
     update_play_pause();
