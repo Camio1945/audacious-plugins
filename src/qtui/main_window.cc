@@ -26,7 +26,7 @@
 
 #include <libaudqt/libaudqt.h>
 
-const char * AUD_TEST_TAG = "[v11-speed]";
+const char * AUD_TEST_TAG = "[v12-test]";
 
 #include "info_bar.h"
 #include "menus.h"
