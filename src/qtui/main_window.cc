@@ -26,7 +26,7 @@
 
 #include <libaudqt/libaudqt.h>
 
-const char * AUD_TEST_TAG = "[v6-hardcoded-ext]";
+const char * AUD_TEST_TAG = "[v7-cols]";
 
 #include "info_bar.h"
 #include "menus.h"

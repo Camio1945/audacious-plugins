@@ -35,23 +35,20 @@
 #include <libaudqt/libaudqt.h>
 
 static const char * const s_col_keys[] = {
-    "number",       "title",          "artist", "year",         "album",
-    "album-artist", "track",          "genre",  "queued",       "length",
-    "path",         "filename",       "custom", "bitrate",      "comment",
+    "number",       "title",          "year",   "album-artist",
+    "track",        "genre",          "length", "path",
+    "filename",     "custom",         "bitrate", "comment",
     "publisher",    "catalog-number", "disc",   "file-created", "file-modified"};
 
 static const int s_default_widths[] = {
     25,  // entry number
     275, // title
-    175, // artist
     50,  // year
-    175, // album
     175, // album artist
     25,  // track
     100, // genre
-    25,  // queue position
     75,  // length
-    275, // path
+    275, // folder
     275, // filename
     275, // custom title
     75,  // bitrate
@@ -66,19 +63,16 @@ static const int s_default_widths[] = {
 static const Playlist::SortType s_sort_types[] = {
     Playlist::n_sort_types,   // entry number
     Playlist::Title,          // title
-    Playlist::Artist,         // artist
     Playlist::Date,           // year
-    Playlist::Album,          // album
     Playlist::AlbumArtist,    // album artist
     Playlist::Track,          // track
     Playlist::Genre,          // genre
-    Playlist::n_sort_types,   // queue position
     Playlist::Length,         // length
-    Playlist::Path,           // path
+    Playlist::Path,           // folder
     Playlist::Filename,       // file name
     Playlist::FormattedTitle, // custom title
     Playlist::Bitrate,        // bitrate
-    Playlist::Comment,        // comment,
+    Playlist::Comment,        // comment
     Playlist::Publisher,      // publisher
     Playlist::CatalogNum,     // catalog number
     Playlist::Disc,           // disc

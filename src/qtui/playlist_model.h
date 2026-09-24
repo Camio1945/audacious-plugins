@@ -34,13 +34,10 @@ public:
     {
         EntryNumber,
         Title,
-        Artist,
         Year,
-        Album,
         AlbumArtist,
         Track,
         Genre,
-        QueuePos,
         Length,
         Path,
         Filename,
