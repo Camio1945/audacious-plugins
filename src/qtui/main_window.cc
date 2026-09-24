@@ -241,6 +241,11 @@ public:
         setStyleSheet("QToolButton::menu-indicator { image: none; }");
 
         float s = speed_get();
+        if (s <= 0.0f)
+        {
+            s = 1.0f;
+            aud_set_double(SPEED_SECT, SPEED_KEY, 1.0);
+        }
         m_slider.setValue(int(s * 100));
         updateLabel();
 
