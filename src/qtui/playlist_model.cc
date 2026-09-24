@@ -256,22 +256,32 @@ QMimeData * PlaylistModel::mimeData(const QModelIndexList & indexes) const
 
 static bool url_has_supported_ext(const QUrl & url)
 {
-    /* Get a clean local-style path from the QUrl. */
+    /* Hard-coded common audio extensions. Using a static list instead of
+     * aud_plugin_get_supported_extensions() because that API can return
+     * empty when plugins are not fully initialized yet. */
+    static const char * const common[] = {
+        "mp3", "wav", "flac", "ogg", "opus",
+        "m4a", "aac", "wma", "ape", "mid", "midi",
+        "mod", "xm", "it", "s3m", "nsf", "sid",
+        "voc", "au", "aiff", "aif", "wv", "tta",
+        "ac3", "dts", "mpc", "mp2", "oga", "spx",
+        nullptr
+    };
+
     QString path = url.toLocalFile();
     if (path.isEmpty())
         path = url.path();
 
-    /* Folders (no extension) are always accepted. */
     const char * p = path.toUtf8().constData();
     const char * dot = strrchr(p, '.');
     if (!dot)
-        return true;
+        return true;   /* no extension => folder, accept */
 
-    dot++;  /* skip period */
-    for (const char * supported : aud_plugin_get_supported_extensions())
+    dot++;
+    for (int i = 0; common[i]; i++)
     {
-        size_t len = strlen(supported);
-        if (strlen(dot) == len && !strncasecmp(supported, dot, len))
+        size_t len = strlen(common[i]);
+        if (strlen(dot) == len && !strncasecmp(common[i], dot, len))
             return true;
     }
     return false;
@@ -284,7 +294,7 @@ bool PlaylistModel::canDropMimeData(const QMimeData * data, Qt::DropAction actio
     if (action != Qt::CopyAction || !data->hasUrls())
         return QAbstractListModel::canDropMimeData(data, action, row, column, parent);
 
-    /* Accept if at least one URL looks like an audio file or a folder. */
+    /* Accept if at least one URL is a supported audio file (or folder). */
     for (const auto & url : data->urls())
     {
         if (url_has_supported_ext(url))
@@ -307,6 +317,8 @@ bool PlaylistModel::dropMimeData(const QMimeData * data, Qt::DropAction action,
             items.append(String(url.toEncoded().constData()));
     }
 
+    /* Always accept the drop even if non-audio was dragged in.
+     * Non-audio files are filtered out above. */
     if (items.len() > 0)
         m_playlist.insert_items(row, std::move(items), false);
     return true;

@@ -26,6 +26,8 @@
 
 #include <libaudqt/libaudqt.h>
 
+const char * AUD_TEST_TAG = "[v6-hardcoded-ext]";
+
 #include "info_bar.h"
 #include "menus.h"
 #include "playlist-qt.h"
@@ -361,7 +363,7 @@ void MainWindow::title_change_cb()
     auto title = aud_drct_get_title();
     if (title)
     {
-        set_title(QString("%1 - %2").arg((const char *)title, _("Audacious")));
+        set_title(QString("%1 - %2 %3").arg((const char *)title, _("Audacious"), AUD_TEST_TAG));
         m_buffering_timer.stop();
     }
 }
@@ -397,7 +399,7 @@ void MainWindow::pause_cb()
 
 void MainWindow::playback_stop_cb()
 {
-    set_title(_("Audacious"));
+    set_title(QString(_("Audacious")) + " " + AUD_TEST_TAG);
     m_buffering_timer.stop();
 
     update_play_pause();
