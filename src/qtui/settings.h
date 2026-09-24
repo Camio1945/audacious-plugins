@@ -22,7 +22,7 @@
 
 #include <libaudcore/templates.h>
 
-#define DEFAULT_COLUMNS "playing title artist album queued length"
+#define DEFAULT_COLUMNS "title year album-artist track genre length path filename"
 
 enum PlaylistTabVisibility
 {
