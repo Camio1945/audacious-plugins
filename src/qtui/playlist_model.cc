@@ -318,7 +318,15 @@ bool PlaylistModel::dropMimeData(const QMimeData * data, Qt::DropAction action,
     /* Always accept the drop even if non-audio was dragged in.
      * Non-audio files are filtered out above. */
     if (items.len() > 0)
+    {
+        /* Sort dropped files by filename, so Ctrl+A drag doesn't depend on
+         * NTFS MFT order (which is random).  Same sort order used by
+         * add_folder() in adder.cc. */
+        items.sort([](const PlaylistAddItem & a, const PlaylistAddItem & b) {
+            return str_compare_encoded(a.filename, b.filename);
+        });
         m_playlist.insert_items(row, std::move(items), false);
+    }
     return true;
 }
 
