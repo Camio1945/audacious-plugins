@@ -9,6 +9,7 @@ qtui_sources = [
   'playlist_model.cc',
   'playlist_tabs.cc',
   'info_bar.cc',
+  'repeat_button.cc',
   'search_bar.cc',
   'status_bar.cc',
   'tool_bar.cc',

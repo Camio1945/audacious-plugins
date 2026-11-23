@@ -24,7 +24,10 @@
 #include <QApplication>
 #include <QClipboard>
 #include <QDesktopServices>
+#include <QDir>
+#include <QFileInfo>
 #include <QMimeData>
+#include <QProcess>
 #include <QUrl>
 
 #include <libaudcore/audstrings.h>
@@ -91,6 +94,24 @@ void pl_song_info ()
     audqt::infowin_show_selected (Playlist::active_playlist ());
 }
 
+/* Opens the containing folder and highlights the given file in it, so that the
+ * file can still be identified when the folder holds many entries. */
+static void show_in_folder (const QString & path)
+{
+#ifdef _WIN32
+    /* explorer.exe /select opens the folder and selects the file */
+    if (QProcess::startDetached ("explorer.exe",
+            {QStringLiteral ("/select,") + QDir::toNativeSeparators (path)}))
+        return;
+#elif defined(__APPLE__)
+    if (QProcess::startDetached ("open", {QStringLiteral ("-R"), path}))
+        return;
+#endif
+
+    /* fall back to just opening the containing folder */
+    QDesktopServices::openUrl (QUrl::fromLocalFile (QFileInfo (path).absolutePath ()));
+}
+
 void pl_open_folder ()
 {
     auto list = Playlist::active_playlist ();
@@ -116,5 +137,7 @@ void pl_open_folder ()
         return;
     }
 
-    QDesktopServices::openUrl (QString (folder));
+    /* convert a file:// URI, if any, into a local path */
+    StringBuf local = uri_to_filename (filename, false);
+    show_in_folder (QString::fromUtf8 (local ? local : (const char *) filename));
 }

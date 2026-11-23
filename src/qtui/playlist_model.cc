@@ -18,6 +18,7 @@
  */
 
 #include <QApplication>
+#include <QColor>
 #include <QDateTime>
 #include <QIcon>
 #include <QLocale>
@@ -95,6 +96,18 @@ QVariant PlaylistModel::alignment(int col) const
 
 QVariant PlaylistModel::data(const QModelIndex & index, int role) const
 {
+    /* Light green background (with dark text, so it stays readable in the
+     * dark theme) for the entry that is currently playing. */
+    if (role == Qt::BackgroundRole || role == Qt::ForegroundRole)
+    {
+        if (m_playlist == Playlist::playing_playlist() &&
+            index.row() == m_playlist.get_position())
+            return (role == Qt::BackgroundRole) ? QColor(200, 255, 200)
+                                                : QColor(0, 0, 0);
+
+        return QVariant();
+    }
+
     int col = index.column() - 1;
     if (col < 0 || col >= n_cols)
         return QVariant();

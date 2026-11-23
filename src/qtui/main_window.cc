@@ -31,6 +31,7 @@
 #include "menus.h"
 #include "playlist-qt.h"
 #include "playlist_tabs.h"
+#include "repeat_button.h"
 #include "status_bar.h"
 #include "time_slider.h"
 #include "tool_bar.h"
@@ -362,9 +363,7 @@ MainWindow::MainWindow()
         ToolBarCustom(slider),
         ToolBarCustom(slider->label()),
         ToolBarSeparator(),
-        ToolBarAction(
-            "media-playlist-repeat", N_("Repeat"), N_("Repeat"),
-            [](bool on) { aud_set_bool("repeat", on); }, &m_repeat_action),
+        ToolBarCustom(new RepeatButton(this)),
         ToolBarAction(
             "media-playlist-shuffle", N_("Shuffle"), N_("Shuffle"),
             [](bool on) { aud_set_bool("shuffle", on); }, &m_shuffle_action),
@@ -538,7 +537,6 @@ void MainWindow::update_toggles()
     m_record_action->setVisible(aud_drct_get_record_enabled());
     m_record_action->setChecked(aud_get_bool("record"));
 
-    m_repeat_action->setChecked(aud_get_bool("repeat"));
     m_shuffle_action->setChecked(aud_get_bool("shuffle"));
 }
 
