@@ -151,6 +151,18 @@ void PlaylistWidget::keyPressEvent(QKeyEvent * event)
     {
         if (event->key() == Qt::Key_Up) { speed_up(); return; }
         if (event->key() == Qt::Key_Down) { speed_down(); return; }
+
+        /* Seek shortcuts: Ctrl+Left / Ctrl+Right — 30 seconds */
+        if (event->key() == Qt::Key_Left)
+        {
+            aud_drct_seek(aud_drct_get_time() - 30 * 1000);
+            return;
+        }
+        if (event->key() == Qt::Key_Right)
+        {
+            aud_drct_seek(aud_drct_get_time() + 30 * 1000);
+            return;
+        }
     }
 
     auto CtrlShiftAlt =
